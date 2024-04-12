@@ -1,14 +1,36 @@
 # Knex
 
-TablePlus and `psql` in our terminal are great for testing out SQL statements.
+TablePlus and `psql` in our terminal are great for testing out SQL statements, but they can only take us so far since we have to manually run the SQL statements ourselves. 
 
-[Knex](https://knexjs.org/) is a JavaScript query builder. It allows us to connect to our databases and use SQL queries within a Node project.
+In this lesson, we will learn [Knex](https://knexjs.org/), a library that allows a Node project to connect to a databases and execute SQL queries. This will enable our server applications to access data from a Postgres database and have a persistent data layer.
 
-We will learn knex so that our Express APIs can access data from a persistent storage database.
+**Table of Contents**
 
-### Setting up the Database
+- [Terms](#terms)
+- [Getting Started: Setting up a Database](#getting-started-setting-up-a-database)
+- [What is Knex?](#what-is-knex)
+- [Configuring Knex](#configuring-knex)
+  - [1) Configuring a Connection: `knexfile.js`](#1-configuring-a-connection-knexfilejs)
+  - [2) Create a `knex` object to connect to the database](#2-create-a-knex-object-to-connect-to-the-database)
+  - [3) Use the `knex` connection object to execute queries](#3-use-the-knex-connection-object-to-execute-queries)
+- [Writing queries using `knex.raw`](#writing-queries-using-knexraw)
+  - [Multi-Line Queries](#multi-line-queries)
+  - [Dynamic Queries](#dynamic-queries)
+  - [Create, Update, and Delete](#create-update-and-delete)
+- [Challenges](#challenges)
 
-We'll be using [this SQL file](./demo/db.sql) called `db.sql` to seed our database. To follow along, create a new folder and then make your own copy of `db.sql` in that folder.
+
+## Terms
+
+* **Knex** - a library that allows a Node project to connect to a databases and execute SQL queries.
+* **Environment Variables** - a variable that is defined outside the scope of the JavaScript execution context. We'll use it with Knex to configure the connection with a Postgres database.
+* **`knexfile.js`** - a file that holds configuration data for connecting to a database
+* **`knex.js`** - a file that exports a `knex` object which has been configured to execute SQL commands to a database.
+* **`knex.raw(query)`** - a method used to execute a given SQL query.
+
+## Getting Started: Setting up a Database
+
+Follow along by running `npm i knex pg` to install Knex and the `pg` (Postgres) modules.
 
 Take a look at the `db.sql` file. It contains the SQL commands to create and populate a database called `playground`. This database will have five tables: `people`, `pets`, `customers`, `orders`, `products`.
 
@@ -21,32 +43,26 @@ psql -d playground -f db.sql
 Alternatively, you can copy and paste the contents of `db.sql` and run in a SQL terminal or GUI like TablePlus. 
 
 
-### Set Up Modules and Files
+## What is Knex?
 
-* `npm init -y`
-* `npm i knex`
-* `npm i pg`
+When we move the data of our server application out of the server's memory and into a database, we need some way of having our server application communicate with the database. That's where Knex comes in.
 
-### Create the Folder Structure
+**Knex** is a library that allows a Node project to connect to a database and execute SQL queries to retrieve data from (or modify the data in) the database.
 
-```
-project/
-  - src/
-    - db/
-      - knex.js
-    - index.js
-    - knexfile.js
-```
+![client server and database diagram](./img/client-server-database-diagram.svg)
 
-* `mkdir src`
-* `mkdir src/db`
-* `touch src/db/knex.js`
-* `touch src/index.js` 
-* `knex init` - creates `knexfile.js`
-  * Note: `knex init` will look for a global `knex` module. Use `npx knex init` to tell your terminal to look into the local `node_modules` folder after looking into the global modules.
-  * Alternatively, install `knex` globally with `-g`
+Assuming we already have a database, in order to use Knex in a server application, we must first provide all of the needed information to connect to the database.
 
-### What's in `knexfile.js`?
+## Configuring Knex
+
+
+### 1) Configuring a Connection: `knexfile.js`
+
+Now that we have a database to play with, we need to tell our application how to connect to it. 
+
+Run the command `npx knex init` which will generate a `knexfile.js` file in the root of your project directory.
+
+> ⚠️ NOTE: The `knexfile.js` file MUST be located in the root of your project. Otherwise, other `knex` configurations won't know where to find it.
 
 The `knexfile.js` holds configuration data for connecting to a database. It exports configuration objects that can be used for various **deployment environments**.
 
@@ -67,16 +83,12 @@ Each deployment environment needs a `client` and a `connection`. For now, we'll 
     connection: {
       database: 'db_name',
       user: 'username',
-      password: 'password',
-      host: 'localhost',
-      port: 5432
+      password: 'password'
     }
   },
 ```
 
-### How to create a `knex` object to connect to the database
-
-> ⚠️ NOTE: The `knexfile.js` file MUST be located in the root of your project. Otherwise, `knex` won't know where to find it.
+### 2) Create a `knex` object to connect to the database
 
 To connect to the database specified by the `knexfile.js`, we need to create a `knex` object. 
 
@@ -84,7 +96,7 @@ To connect to the database specified by the `knexfile.js`, we need to create a `
 ```js
 // src/db/knex.js
 const env = 'development';
-const knexConfig = require('../../knexfile')[env];
+const knexConfig = require('./knexfile.js')[env];
 const knex = require('knex')(knexConfig);
 
 module.exports = knex;
@@ -93,7 +105,7 @@ module.exports = knex;
 * The `knex` Node module exports a function to create a `knex` object. It takes in our `knexConfig` as an argument.
 * The `knex` object is our connection to the database specified in `knexfile.js`. We can export it so that other files can use the `knex` connection object.
 
-### Using the `knex` connection object
+### 3) Use the `knex` connection object to execute queries
 
 We can play with our `knex` connection directly in our `index.js` file. 
 
@@ -102,7 +114,7 @@ We can play with our `knex` connection directly in our `index.js` file.
 The `knex` connection object has an _asynchronous_ method called `raw` that takes in SQL statements and returns a `query` object.
 
 ```js
-// src/index.js
+// index.js
 const knex = require('./db/knex.js');
 
 const getPets = async () => {
@@ -120,6 +132,8 @@ main();
 ```
 
 * Most of the time, we'll use the `query.rows` property to get the results as an array.
+
+## Writing queries using `knex.raw`
 
 ### Multi-Line Queries
 
@@ -182,7 +196,7 @@ const getPetsByOwnerIdAndSpecies = async(ownerId, species) => {
 
 In this query, the first `?` will be replaced by the value of the `ownerId` parameter, and the second `?` will be replaced by the value of the `species` parameter.
 
-### C(R)UD
+### Create, Update, and Delete
 
 So far, we've read from the database, let's create, update, and delete using `knex.raw`.
 
@@ -232,7 +246,7 @@ const deletePetByName = async(name) => {
 };
 ```
 
-### Challenges
+## Challenges
 
 Level 1: `pets` and `people`
 * get one pet by pet id
