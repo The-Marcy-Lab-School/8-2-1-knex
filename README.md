@@ -160,15 +160,19 @@ const main = async () => {
     const pets = await getPets()
     const people = await getPeople();
 
-    knex.destroy(); // destroy the connection before ending the program.
+    // Destroy the connection to the database.
+    knex.destroy(); 
 };
 
 main();
 ```
 
 * Most of the time, we'll use the `.rows` property to get the results as an array.
+* Without the `knex.destroy()`, the file will not terminate.
 
 ## Writing queries using `knex.raw`
+
+Now that we have `knex` set up, let's have some fun!
 
 ### Multi-Line Queries
 
@@ -213,13 +217,7 @@ WHERE people.name='Ann Duong' AND pets.type='dog'
 
 </details><br>
 
-Let's make a function that can show us the pets of ANY given `type` owned by ANY given `owner_id`?
-
-Ex: `getPetsByOwnerIdAndSpecies(3, 'cat')`
-
-We will need to create a **dynamic query** with `knex.raw`:
-* insert `?` as a placeholder for a dynamic piece of data.
-* pass an array of values as a second argument to the `knex.raw` function containing the dynamic values to be used. 
+To turn this query into a function that can show us the pets of ANY given `type` owned by ANY given `owner_id`, we will need to create a **dynamic query**:
 
 ```js
 const getPetsByOwnerNameAndType = async (ownerName, type) => {
@@ -234,8 +232,9 @@ const getPetsByOwnerNameAndType = async (ownerName, type) => {
   return rows;
 }
 ```
-
-In this query, the first `?` will be replaced by the value of the `ownerName` parameter, and the second `?` will be replaced by the value of the `species` parameter.
+* In the query, the `?` act as placeholders.
+* If we pass an array of values as a second argument to `knex.raw`, we assign values for those placeholders. 
+* In this query, the first `?` will be replaced by the value of the `ownerName` parameter, and the second `?` will be replaced by the value of the `species` parameter.
 
 ### Create, Update, and Delete
 
@@ -245,31 +244,33 @@ So far, we've read from the database, let's create, update, and delete using `kn
 
 ```js
 const createPet = async(name, species, ownerId) => {
-  let result = await knex.raw(`
+  const query = `
     INSERT INTO pets (name, species, owner_id)
     VALUES (?, ?, ?)
     RETURNING *
-  `, [name, species, ownerId]);
+  `
+  const { rows } = await knex.raw(query, [name, species, ownerId]);
 
-  console.log(result.rows[0]);
+  return rows[0];
 };
 ```
 
 * `RETURNING *` returns the created record. Without this, `result.rows` will be an empty array.
-* `result.rows[0]` will the one created value.
+* `result.rows[0]` will be the one created value.
 
 **Update a pet's name:**
 
 ```js
 const updatePetNameByName = async(oldName, newName) => {
-  let result = await knex.raw(`
+  const query = `
     UPDATE pets
     SET name=?
     WHERE name=?
     RETURNING *
-  `, [newName, oldName]);
+  `
+  let { rows } = await knex.raw(query, [newName, oldName]);
 
-  console.log(result.rows[0]);
+  console.log(rows[0]);
 }
 ```
 
@@ -277,13 +278,14 @@ const updatePetNameByName = async(oldName, newName) => {
 
 ```js
 const deletePetByName = async(name) => {
-  let result = await knex.raw(`
+  const query = `
     DELETE FROM pets
     WHERE name=?
     RETURNING *
-  `, [name]);
+  `
+  let { rows } = await knex.raw(query, [name]);
 
-  console.log(result.rows[0]);
+  console.log(rows[0]);
 };
 ```
 
