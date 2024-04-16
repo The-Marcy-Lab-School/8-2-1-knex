@@ -10,6 +10,7 @@ In this lesson, we will learn [Knex](https://knexjs.org/), a library that allows
 - [Getting Started: Setting up a Database](#getting-started-setting-up-a-database)
 - [What is Knex?](#what-is-knex)
 - [Configuring Knex](#configuring-knex)
+  - [0) Installing modules](#0-installing-modules)
   - [1) Configuring a Connection: `knexfile.js`](#1-configuring-a-connection-knexfilejs)
   - [2) Create a `knex` object to connect to the database](#2-create-a-knex-object-to-connect-to-the-database)
   - [3) Use the `knex` connection object to execute queries](#3-use-the-knex-connection-object-to-execute-queries)
@@ -30,9 +31,7 @@ In this lesson, we will learn [Knex](https://knexjs.org/), a library that allows
 
 ## Getting Started: Setting up a Database
 
-Follow along by running `npm i knex pg` to install Knex and the `pg` (Postgres) modules.
-
-Take a look at the `db.sql` file. It contains the SQL commands to create and populate a database called `playground`. This database will have five tables: `people`, `pets`, `customers`, `orders`, `products`.
+Take a look at the `0-simple-demo/db.sql` file. It contains the SQL commands to create and populate a database called `playground`. This database will have five tables: `people`, `pets`, `customers`, `orders`, `products`.
 
 We can run these commands to set up our work (if working on windows, add `sudo -u postgres` before each command)
 ```
@@ -51,20 +50,31 @@ When we move the data of our server application out of the server's memory and i
 
 ![client server and database diagram](./img/client-server-database-diagram.svg)
 
-Assuming we already have a database, in order to use Knex in a server application, we must first provide all of the needed information to connect to the database.
+Assuming we already have a database, in order to use Knex in a server application, we must first provide all of the needed information to connect to the database. This will require us to 
+
+1) Configure a connection with a `knexfile.js`
+2) Create a `knex` object to connect to the database
+3) Use the `knex` connection object to execute queries
 
 ## Configuring Knex
 
+### 0) Installing modules
+
+We will be using the `knex` and the `pg` modules from NPM:
+
+```sh
+npm i knex pg 
+```
 
 ### 1) Configuring a Connection: `knexfile.js`
 
 Now that we have a database to play with, we need to tell our application how to connect to it. 
 
-Run the command `npx knex init` which will generate a `knexfile.js` file in the root of your project directory.
+Run the command `npx knex init` which will generate a `knexfile.js` file in the root of your project directory. The `knexfile.js` holds configuration data for connecting to a database.
 
 > ⚠️ NOTE: The `knexfile.js` file MUST be located in the root of your project. Otherwise, other `knex` configurations won't know where to find it.
 
-The `knexfile.js` holds configuration data for connecting to a database. It exports configuration objects that can be used for various **deployment environments**.
+ The exported object contains configuration objects that can be used for various **deployment environments**.
 
 ```js
 // knexfile.js
@@ -75,15 +85,17 @@ module.exports = {
 }
 ```
 
-Each deployment environment needs a `client` and a `connection`. For now, we'll be working in the `development` environment and can ignore the other environment configurations.
+For now, we'll be working in the `development` environment and can ignore the other environment configurations.
+
+Each deployment environment needs a `client` that specifies the kind of database we're connecting to (we will use `pg` which is short for Postgres). The `connection` object is where we provide the username, password, and specific database we want to connect to.
 
 ```js
   development: {
     client: 'pg',
     connection: {
-      database: 'db_name',
       user: 'username',
       password: 'password'
+      database: 'db_name',
     }
   },
 ```
@@ -111,19 +123,29 @@ We can play with our `knex` connection directly in our `index.js` file.
 
 > 💡 NOTE: In future projects, only our `models` will interact with `knex`.
 
-The `knex` connection object has an _asynchronous_ method called `raw` that takes in SQL statements and returns a `query` object.
+The `knex` connection object has an _asynchronous_ method called `raw` that takes in SQL statements and returns a `result` object.
 
 ```js
 // index.js
 const knex = require('./db/knex.js');
 
 const getPets = async () => {
-    let query = await knex.raw("SELECT * FROM pets");
-    console.log(query);
+  // knex.raw returns a query result object
+  let result = await knex.raw("SELECT * FROM pets");
+  
+  // .rows is an array containing the query data
+  return result.rows;
+};
+
+const getPeople = async () => {
+  // often, we just destructure the rows and return
+  let { rows } = await knex.raw("SELECT * FROM pets");
+  return rows;
 };
 
 const main = async () => {
-    await getPets() // Test to see if knex is configured correctly to connect to your database
+    const pets = await getPets()
+    const people = await getPeople();
 
     knex.destroy(); // destroy the connection before ending the program.
 };
@@ -131,7 +153,7 @@ const main = async () => {
 main();
 ```
 
-* Most of the time, we'll use the `query.rows` property to get the results as an array.
+* Most of the time, we'll use the `.rows` property to get the results as an array.
 
 ## Writing queries using `knex.raw`
 
@@ -140,29 +162,18 @@ main();
 ```js
 // Use `` to create multi-line strings
 const getPeople = async () => {
-    let query = await knex.raw(`
-      SELECT * 
-      FROM people;
-    `);
-    console.log(query.rows);
+  const query = `
+    SELECT * 
+    FROM people;
+  `
+  const { rows } = await knex.raw(query);
+  return rows;
 };
 ```
 
 ### Dynamic Queries
 
 Consider the `pets` table below. 
-
-**Q: What is the SQL query to find the cats owned by the owner with id 3?**
-
-<details><summary>Answer</summary>
-
-> ```sql
-> SELECT *
-> FROM pets
-> WHERE owner_id=3 AND species='cat'
-> ```
-
-</details>
 
 | id  | name       | species | owner_id |
 | --- | ---------- | ------- | -------- |
@@ -172,9 +183,22 @@ Consider the `pets` table below.
 | 4   | Tora       | dog     | 1        |
 | 5   | Frida      | cat     | 3        |
 | 6   | Pon Juablo | cat     | 2        |
-| 7   | Kora       | cat     | 1        |
+| 7   | Kora       | dog     | 1        |
 
-How can we make a function that can show us the pets of ANY given `species` owned by ANY given `owner_id`?
+**Q: What is the SQL query to find the dogs owned by the Ann Duong?**
+
+<details><summary>Answer</summary>
+
+```sql
+SELECT pets.name, pets.id
+FROM pets
+  JOIN people ON pets.owner_id = people.id
+WHERE people.name='Ann Duong' AND pets.type='dog'
+```
+
+</details><br>
+
+Let's make a function that can show us the pets of ANY given `type` owned by ANY given `owner_id`?
 
 Ex: `getPetsByOwnerIdAndSpecies(3, 'cat')`
 
@@ -183,18 +207,20 @@ We will need to create a **dynamic query** with `knex.raw`:
 * pass an array of values as a second argument to the `knex.raw` function containing the dynamic values to be used. 
 
 ```js
-const getPetsByOwnerIdAndSpecies = async(ownerId, species) => {
-  let query = await knex.raw(`
-    SELECT *
+const getPetsByOwnerNameAndType = async (ownerName, type) => {
+  const query = `
+    SELECT pets.name, pets.id
     FROM pets
-    WHERE owner_id=? AND species=?
-  `, [ownerId, species]);
-
-  console.log(query.rows);
+      JOIN people ON pets.owner_id = people.id
+    WHERE people.name=? AND pets.type=?
+  `
+  const { rows } = await knex.raw(query, [ownerName, type]);
+  console.log(rows);
+  return rows;
 }
 ```
 
-In this query, the first `?` will be replaced by the value of the `ownerId` parameter, and the second `?` will be replaced by the value of the `species` parameter.
+In this query, the first `?` will be replaced by the value of the `ownerName` parameter, and the second `?` will be replaced by the value of the `species` parameter.
 
 ### Create, Update, and Delete
 
@@ -204,31 +230,31 @@ So far, we've read from the database, let's create, update, and delete using `kn
 
 ```js
 const createPet = async(name, species, ownerId) => {
-  let query = await knex.raw(`
+  let result = await knex.raw(`
     INSERT INTO pets (name, species, owner_id)
     VALUES (?, ?, ?)
     RETURNING *
   `, [name, species, ownerId]);
 
-  console.log(query.rows[0]);
+  console.log(result.rows[0]);
 };
 ```
 
-* `RETURNING *` returns the created record. Without this, `query.rows` will be an empty array.
-* `query.rows[0]` will the one created value.
+* `RETURNING *` returns the created record. Without this, `result.rows` will be an empty array.
+* `result.rows[0]` will the one created value.
 
 **Update a pet's name:**
 
 ```js
 const updatePetNameByName = async(oldName, newName) => {
-  let query = await knex.raw(`
+  let result = await knex.raw(`
     UPDATE pets
     SET name=?
     WHERE name=?
     RETURNING *
   `, [newName, oldName]);
 
-  console.log(query.rows[0]);
+  console.log(result.rows[0]);
 }
 ```
 
@@ -236,13 +262,13 @@ const updatePetNameByName = async(oldName, newName) => {
 
 ```js
 const deletePetByName = async(name) => {
-  let query = await knex.raw(`
+  let result = await knex.raw(`
     DELETE FROM pets
     WHERE name=?
     RETURNING *
   `, [name]);
 
-  console.log(query.rows[0]);
+  console.log(result.rows[0]);
 };
 ```
 
