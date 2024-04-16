@@ -9,19 +9,30 @@ DROP TABLE IF EXISTS author_book;
 DROP TABLE IF EXISTS books;
 DROP TABLE IF EXISTS authors;
 
-CREATE TABLE people (id SERIAL PRIMARY KEY, first_name TEXT, last_name TEXT);
-INSERT INTO people (first_name, last_name) VALUES ('Ann', 'Duong');
-INSERT INTO people (first_name, last_name) VALUES ('Reuben', 'Ogbonna');
-INSERT INTO people (first_name, last_name) VALUES ('Maya', 'Bhattacharjee');
+CREATE TABLE people (
+	id SERIAL PRIMARY KEY,
+	name TEXT NOT NULL
+);
 
-CREATE TABLE pets (id SERIAL PRIMARY KEY, name TEXT, species TEXT, owner_id INTEGER);
-INSERT INTO pets (name, species, owner_id) VALUES ('Khalo', 'dog', 3);
-INSERT INTO pets (name, species, owner_id) VALUES ('Juan Pablo', 'dog', 2);
-INSERT INTO pets (name, species, owner_id) VALUES ('Bora', 'bird', 1);
-INSERT INTO pets (name, species, owner_id) VALUES ('Tora', 'dog', 1);
-INSERT INTO pets (name, species, owner_id) VALUES ('Frida', 'cat', 3);
-INSERT INTO pets (name, species, owner_id) VALUES ('Pon Juablo', 'cat', 2);
-INSERT INTO pets (name, species, owner_id) VALUES ('Kora', 'cat', 1);
+CREATE TABLE pets (
+	id SERIAL PRIMARY KEY,
+	name TEXT NOT NULL, 
+	type TEXT NOT NULL, 
+	owner_id INTEGER REFERENCES people
+);
+
+INSERT INTO people (name) VALUES ('Ann Duong');
+INSERT INTO people (name) VALUES ('Reuben Ogbonna');
+INSERT INTO people (name) VALUES ('Carmen Salas');
+INSERT INTO people (name) VALUES ('Ben Spector');
+
+INSERT INTO pets (name, type, owner_id) VALUES ('Khalo', 'dog', 3);
+INSERT INTO pets (name, type, owner_id) VALUES ('Juan Pablo', 'dog', 2);
+INSERT INTO pets (name, type, owner_id) VALUES ('Bora', 'bird', 1);
+INSERT INTO pets (name, type, owner_id) VALUES ('Tora', 'dog', 1);
+INSERT INTO pets (name, type, owner_id) VALUES ('Frida', 'cat', 3);
+INSERT INTO pets (name, type, owner_id) VALUES ('Pon Juablo', 'cat', 2);
+INSERT INTO pets (name, type, owner_id) VALUES ('Kora', 'dog', 1);
 
 CREATE TABLE customers (
 id SERIAL PRIMARY KEY,

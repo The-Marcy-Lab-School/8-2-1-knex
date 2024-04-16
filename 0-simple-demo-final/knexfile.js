@@ -10,7 +10,7 @@ module.exports = {
     connection: {
       user: 'postgres',
       password: 'postgres',
-      database: 'postgres'
+      database: 'playground'
     }
   },
 

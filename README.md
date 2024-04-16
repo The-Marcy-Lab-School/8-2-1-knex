@@ -103,7 +103,8 @@ Each deployment environment needs a `client` that specifies the kind of database
     connection: {
       user: 'username',
       password: 'password'
-      database: 'db_name',
+      database: 'playground', 
+      // the database name ^
     }
   },
 ```
@@ -291,16 +292,26 @@ const deletePetByName = async(name) => {
 
 ## Challenges
 
-Level 1: `pets` and `people`
-* get one pet by pet id
-* get one person by person id
-* get pets owned by a person by owner_id
-* get pets owned by a person by the owner's first and last name
-* create a new pet
-* delete a pet
-* update an owner's name
+The following challenges can be completed using the `playground` database created earlier. For instructions, jump back to the top or run these commands (Windows users, add `sudo -u postgres` to the start of each command)
 
-Level 2: `customers`, `products`, and `orders`
+```
+psql -c "DROP DATABASE playground;"
+psql -c "CREATE DATABASE playground;"
+psql -d playground -f db.sql
+```
+
+These challenges illustrate many-to-many relationships:
+
+![erd with one to many and many to many relationships](./img/labeled-erd.png)
+
+**`authors`, `books`, and `author_book`**
+* get all the books that a certain author has ever written.
+* get all the authors of a certain book.
+* create a new book, by a provided author (make sure to connect them!)
+* update the title of a book
+* delete a book (make sure to remove the associated connection as well)
+
+**`customers`, `products`, and `orders`**
 * get all the orders the belong to certain customer.
 * get all the products that a certain customer has ever bought.
 * get the top 3 most recent orders.
@@ -309,11 +320,3 @@ Level 2: `customers`, `products`, and `orders`
 * create a new order
 * delete an order
 * update an order
-
-Level 3: `authors`, `books`, and `author_book`
-* get all the books that a certain author has ever written.
-* get all the authors of a certain book.
-* create a new book, by a provided author (make sure to connect them!)
-* update the title of a book
-* delete a book (make sure to remove the associated connection as well)
-
