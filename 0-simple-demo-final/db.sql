@@ -1,10 +1,10 @@
 --SQL to create our database and data--
 
-DROP TABLE IF EXISTS people;
 DROP TABLE IF EXISTS pets;
+DROP TABLE IF EXISTS people;
+DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS author_book;
 DROP TABLE IF EXISTS books;
 DROP TABLE IF EXISTS authors;
