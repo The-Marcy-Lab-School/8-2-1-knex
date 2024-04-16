@@ -11,7 +11,7 @@ In this lesson, we will learn [Knex](https://knexjs.org/), a library that allows
 - [What is Knex?](#what-is-knex)
 - [Configuring Knex](#configuring-knex)
   - [0) Installing modules](#0-installing-modules)
-  - [1) Configuring a Connection: `knexfile.js`](#1-configuring-a-connection-knexfilejs)
+  - [1) Provide connection details with a `knexfile.js`](#1-provide-connection-details-with-a-knexfilejs)
   - [2) Create a `knex` object to connect to the database](#2-create-a-knex-object-to-connect-to-the-database)
   - [3) Use the `knex` connection object to execute queries](#3-use-the-knex-connection-object-to-execute-queries)
 - [Writing queries using `knex.raw`](#writing-queries-using-knexraw)
@@ -24,7 +24,9 @@ In this lesson, we will learn [Knex](https://knexjs.org/), a library that allows
 ## Terms
 
 * **Knex** - a library that allows a Node project to connect to a databases and execute SQL queries.
-* **Environment Variables** - a variable that is defined outside the scope of the JavaScript execution context. We'll use it with Knex to configure the connection with a Postgres database.
+* **Deployment Environment** - where an application is deployed. The two main ones are:
+  * Development Environment (your own computer) and 
+  * Production Environment (a hosting service like Render)
 * **`knexfile.js`** - a file that holds configuration data for connecting to a database
 * **`knex.js`** - a file that exports a `knex` object which has been configured to execute SQL commands to a database.
 * **`knex.raw(query)`** - a method used to execute a given SQL query.
@@ -46,15 +48,14 @@ Alternatively, you can copy and paste the contents of `db.sql` and run in a SQL 
 
 When we move the data of our server application out of the server's memory and into a database, we need some way of having our server application communicate with the database. That's where Knex comes in.
 
-**Knex** is a library that allows a Node project to connect to a database and execute SQL queries to retrieve data from (or modify the data in) the database.
+**Knex** is a library that allows a Node project to connect to a database and execute SQL queries using that database.
 
 ![client server and database diagram](./img/client-server-database-diagram.svg)
 
-Assuming we already have a database, in order to use Knex in a server application, we must first provide all of the needed information to connect to the database. This will require us to 
-
-1) Configure a connection with a `knexfile.js`
+Assuming we already have a database, in order to use Knex in a server application, we must:
+1) Provide connection details (username, password, database name) with a `knexfile.js`
 2) Create a `knex` object to connect to the database
-3) Use the `knex` connection object to execute queries
+3) Use the `knex.raw` method to execute SQL queries
 
 ## Configuring Knex
 
@@ -66,28 +67,35 @@ We will be using the `knex` and the `pg` modules from NPM:
 npm i knex pg 
 ```
 
-### 1) Configuring a Connection: `knexfile.js`
+`pg` is the module that helps `knex` connect to a Postgres database. If we were to use a different kind of database, we would need to install a different module alongside `knex`.
 
-Now that we have a database to play with, we need to tell our application how to connect to it. 
+### 1) Provide connection details with a `knexfile.js`
+
+In order to use a database, we need to tell our server:
+* the name of the database
+* the username we will connect to it with
+* the password for that username.
+
+All of this is done using a special file called `knexfile.js`:
 
 Run the command `npx knex init` which will generate a `knexfile.js` file in the root of your project directory. The `knexfile.js` holds configuration data for connecting to a database.
 
 > ⚠️ NOTE: The `knexfile.js` file MUST be located in the root of your project. Otherwise, other `knex` configurations won't know where to find it.
 
- The exported object contains configuration objects that can be used for various **deployment environments**.
+The exported object contains configuration objects that can be used for various **deployment environments**.
 
 ```js
 // knexfile.js
 module.exports = {
   development: {},  // Work in progress. Only on your computer
   staging: {},      // "Fake" production, fake data, fake users, test integrations
-  production: {},   // Full production - real users
+  production: {},   // Deployed. Real users, real data.
 }
 ```
 
-For now, we'll be working in the `development` environment and can ignore the other environment configurations.
+For now, we'll be working in the `development` environment and can wait to set up the other environment configurations.
 
-Each deployment environment needs a `client` that specifies the kind of database we're connecting to (we will use `pg` which is short for Postgres). The `connection` object is where we provide the username, password, and specific database we want to connect to.
+Each deployment environment needs a `client` that specifies the kind of database we're connecting to (we will use `pg` which is short for Postgres). 
 
 ```js
   development: {
@@ -100,22 +108,27 @@ Each deployment environment needs a `client` that specifies the kind of database
   },
 ```
 
+The `connection` object is where we provide the username, password, and specific database we want to connect to.
+
 ### 2) Create a `knex` object to connect to the database
 
-To connect to the database specified by the `knexfile.js`, we need to create a `knex` object. 
-
+To actually use the database details specified by the `knexfile.js`, we need to create a `knex` object. 
 
 ```js
 // src/db/knex.js
-const env = 'development';
+const env = process.env.NODE_ENV || 'development';
 const knexConfig = require('./knexfile.js')[env];
 const knex = require('knex')(knexConfig);
 
 module.exports = knex;
 ```
-* The `knexfile.js` file exports an object with configurations for various deployment environments. We want the `development` configuration.
-* The `knex` Node module exports a function to create a `knex` object. It takes in our `knexConfig` as an argument.
-* The `knex` object is our connection to the database specified in `knexfile.js`. We can export it so that other files can use the `knex` connection object.
+* The `env` value determines which knex configuration we will use (`"development"`, `"staging"` or `"production"`). 
+  * [When we deploy using Render.com](https://docs.render.com/environment-variables#node), it will provide a `NODE_ENV` environment variable set to `"production"`.
+  * In development, we don't need to set any environment variables as the default will just be `"development"`
+* We then import the configurations from `knexfile.js` file, specifically selecting the `"development"` configuration (or `"production"` when we deploy)
+* Next, we create a `knex` object by invoking the function imported from the `knex` Node module and passing along the `knexConfig` as an argument.
+  * The `knex` object is our connection to the database specified in `knexfile.js`.
+  * We export it so that other files can use the `knex` connection object.
 
 ### 3) Use the `knex` connection object to execute queries
 
@@ -185,7 +198,7 @@ Consider the `pets` table below.
 | 6   | Pon Juablo | cat     | 2        |
 | 7   | Kora       | dog     | 1        |
 
-**Q: What is the SQL query to find the dogs owned by the Ann Duong?**
+**Q: What is the SQL query to find the name and id of the dogs owned by Ann Duong?**
 
 <details><summary>Answer</summary>
 
@@ -195,6 +208,8 @@ FROM pets
   JOIN people ON pets.owner_id = people.id
 WHERE people.name='Ann Duong' AND pets.type='dog'
 ```
+
+**Explanation:** We have to specify that we want the `name` and `id` columns from the `pets` table since the `people` table also has columns with those names. We then query from the join of `pets` and `people`, connecting rows from each table using the `pets.owner_id` foreign key and the `people.id` primary key. We finally filter the results to only show the rows where the person's name is `Ann Duong` and the pet's type is `dog`.
 
 </details><br>
 
