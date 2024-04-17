@@ -17,6 +17,7 @@ In this lesson, we will learn [Knex](https://knexjs.org/), a library that allows
 - [Writing queries using `knex.raw`](#writing-queries-using-knexraw)
   - [Multi-Line Queries](#multi-line-queries)
   - [Dynamic Queries](#dynamic-queries)
+  - [A more complex example](#a-more-complex-example)
   - [Create, Update, and Delete](#create-update-and-delete)
 - [Challenges](#challenges)
 
@@ -33,16 +34,26 @@ In this lesson, we will learn [Knex](https://knexjs.org/), a library that allows
 
 ## Getting Started: Setting up a Database
 
-Take a look at the `0-simple-demo/db.sql` file. It contains the SQL commands to create and populate a database called `playground`. This database will have five tables: `people`, `pets`, `customers`, `orders`, `products`.
+Take a look at the `db.sql` file. It contains the SQL commands to create and populate a database called `playground`. This database will have five tables: `people`, `pets`, `customers`, `orders`, `products`.
 
-We can run these commands to set up our work (if working on windows, add `sudo -u postgres` before each command)
-```
-psql -c "DROP DATABASE playground;"
-psql -c "CREATE DATABASE playground;"
-psql -d playground -f db.sql
-```
-Alternatively, you can copy and paste the contents of `db.sql` and run in a SQL terminal or GUI like TablePlus. 
+1. Turn on your Postgres server
 
+   * Windows users open your Ubuntu Terminal and run: `sudo service postgresql start`
+   * Mac users open the Postgres app and click <kbd>Start</kbd>
+
+2. Open up the TablePlus SQL query editor (or use the `psql` CLI)
+3. Run these commands:
+
+    ```sql
+    DROP DATABASE playground;
+    CREATE DATABASE playground;
+    ```
+
+4. Connect to the `playground` database (or, in the `psql` CLI, run `\c playground`)
+
+![](./img/tableplus.png)
+
+5. Copy-Paste the commands from `db.sql` into the TablePlus SQL query editor (or in `psql` connected to the `playground` database)
 
 ## What is Knex?
 
@@ -102,7 +113,7 @@ Each deployment environment needs a `client` that specifies the kind of database
     client: 'pg',
     connection: {
       user: 'username',
-      password: 'password'
+      password: 'password',
       database: 'playground', 
       // the database name ^
     }
@@ -190,6 +201,26 @@ const getPeople = async () => {
 ```
 
 ### Dynamic Queries
+
+```js
+const createPet = async (name, type, owner_id) => {
+  // The ? are placeholders
+  const query = `
+    INSERT INTO pets (name, type, owner_id)
+    VALUES (?, ?, ?)
+  `
+  // The array passed to knex.raw assigns values to the ? in order
+  const { rows } = await knex.raw(query, [name, type, owner_id]);
+  return rows;
+};
+```
+
+* In the `query` string, the `?`s act as placeholders.
+* To assign values to the `?`s, we pass an array of ordered values as a second argument to `knex.raw`. 
+  * Order matters! In this example, `name` will be the first `?`, then `type`, then `owner_id`.
+* To avoid SQL injection attacks, we want to avoid inserting dynamic values into a SQL query through interpolation: `${}`
+
+### A more complex example
 
 Consider the `pets` table below. 
 
@@ -291,14 +322,6 @@ const deletePetByName = async(name) => {
 ```
 
 ## Challenges
-
-The following challenges can be completed using the `playground` database created earlier. For instructions, jump back to the top or run these commands (Windows users, add `sudo -u postgres` to the start of each command)
-
-```
-psql -c "DROP DATABASE playground;"
-psql -c "CREATE DATABASE playground;"
-psql -d playground -f db.sql
-```
 
 These challenges illustrate many-to-many relationships:
 

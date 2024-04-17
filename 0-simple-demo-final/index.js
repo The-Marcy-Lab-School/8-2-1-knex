@@ -2,17 +2,38 @@ const knex = require('./knex');
 
 const getPets = async () => {
   // knex.raw returns a query result object
-  let result = await knex.raw("SELECT * FROM pets");
+  const result = await knex.raw("SELECT * FROM pets");
 
   // .rows is an array containing the query data
   return result.rows;
 };
 
 const getPeople = async () => {
-  // often, we just destructure the rows and return
-  let { rows } = await knex.raw("SELECT * FROM pets");
+  // We can use `` to create multi-line queries
+  const query = `
+    SELECT * 
+    FROM people
+  `
+  // most of the time, we immediately destructure the rows out of the object
+  const { rows } = await knex.raw(query);
   return rows;
 };
+
+const createPet = async (name, type, owner_id) => {
+  // The ? is how we dynamically insert values into a query
+  // To avoid SQL injection attacks, we want to avoid inserting
+  // dynamic values into a SQL query through interpolation: `${}`
+  const query = `
+    INSERT INTO pets (name, type, owner_id)
+    VALUES (?, ?, ?)
+  `
+
+  // We can set the value for each ? by providing an ordered array
+  // as a second argument to knex.raw
+  const { rows } = await knex.raw(query, [name, type, owner_id]);
+  return rows;
+};
+
 
 const getPetsByOwnerNameAndType = async (ownerName, type) => {
   const query = `
@@ -51,6 +72,9 @@ const getProductsBoughtByCustomer = async (name) => {
 }
 
 const main = async () => {
+
+  await createPet('Swiper', 'fox', 3);
+
   const pets = await getPets();
   const people = await getPeople();
   const annsDogs = await getPetsByOwnerNameAndType('Ann Duong', 'dog');
