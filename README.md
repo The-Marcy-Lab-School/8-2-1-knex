@@ -131,19 +131,18 @@ The `connection` object is where we provide the username, password, and specific
 To actually use the database details specified by the `knexfile.js`, we need to create a `knex` object. 
 
 ```js
-// src/db/knex.js
+const makeKnex = require('knex');
+const knexConfigs = require('./knexfile.js')
 const env = process.env.NODE_ENV || 'development';
-const knexConfig = require('./knexfile.js')[env];
-const knex = require('knex')(knexConfig);
+const knex = makeKnex(knexConfigs[env]);
 
 module.exports = knex;
 ```
-* The `env` value determines which knex configuration we will use (`"development"`, `"staging"` or `"production"`). 
-  * [When we deploy using Render.com](https://docs.render.com/environment-variables#node), it will provide a `NODE_ENV` environment variable set to `"production"`.
-  * In development, we don't need to set any environment variables as the default will just be `"development"`
-* We then import the configurations from `knexfile.js` file, specifically selecting the `"development"` configuration (or `"production"` when we deploy)
-* Next, we create a `knex` object by invoking the function imported from the `knex` Node module and passing along the `knexConfig` as an argument.
-  * The `knex` object is our connection to the database specified in `knexfile.js`.
+* The `knex` module exports a function for creating a database connection. To use that function, we need a configuration from `knexfile.js`
+* Since our `knexfile.js` exports 3 configurations (`development`, `staging` and `production`), we specify which of those configurations we use with the `env` variable
+  * We use `"development"` unless the `NODE_ENV` environment variable is set. [When we deploy using Render.com](https://docs.render.com/environment-variables#node), it will provide a `NODE_ENV` environment variable set to `"production"`.
+* Finally, we create a `knex` object by invoking `makeKnex` and providing `knexConfigs[env]` as an argument.
+  * The `knex` object represents our connection to the database specified in `knexfile.js`.
   * We export it so that other files can use the `knex` connection object.
 
 ### 3) Use the `knex` connection object to execute queries
@@ -228,15 +227,15 @@ const createPet = async (name, type, owner_id) => {
 
 Consider the `pets` table below. 
 
-| id  | name       | species | owner_id |
-| --- | ---------- | ------- | -------- |
-| 1   | Khalo      | dog     | 3        |
-| 2   | Juan Pablo | dog     | 2        |
-| 3   | Bora       | bird    | 1        |
-| 4   | Tora       | dog     | 1        |
-| 5   | Frida      | cat     | 3        |
-| 6   | Pon Juablo | cat     | 2        |
-| 7   | Kora       | dog     | 1        |
+| id  | name       | type | owner_id |
+| --- | ---------- | ---- | -------- |
+| 1   | Khalo      | dog  | 3        |
+| 2   | Juan Pablo | dog  | 2        |
+| 3   | Bora       | bird | 1        |
+| 4   | Tora       | dog  | 1        |
+| 5   | Frida      | cat  | 3        |
+| 6   | Pon Juablo | cat  | 2        |
+| 7   | Kora       | dog  | 1        |
 
 **Q: What is the SQL query to find the name and id of the dogs owned by Ann Duong?**
 
@@ -270,7 +269,7 @@ const getPetsByOwnerNameAndType = async (ownerName, type) => {
 ```
 * In the query, the `?` act as placeholders.
 * If we pass an array of values as a second argument to `knex.raw`, we assign values for those placeholders. 
-* In this query, the first `?` will be replaced by the value of the `ownerName` parameter, and the second `?` will be replaced by the value of the `species` parameter.
+* In this query, the first `?` will be replaced by the value of the `ownerName` parameter, and the second `?` will be replaced by the value of the `type` parameter.
 
 ### Create, Update, and Delete
 
@@ -279,13 +278,13 @@ So far, we've read from the database, let's create, update, and delete using `kn
 **Create a pet:**
 
 ```js
-const createPet = async(name, species, ownerId) => {
+const createPet = async(name, type, ownerId) => {
   const query = `
-    INSERT INTO pets (name, species, owner_id)
+    INSERT INTO pets (name, type, owner_id)
     VALUES (?, ?, ?)
     RETURNING *
   `
-  const { rows } = await knex.raw(query, [name, species, ownerId]);
+  const { rows } = await knex.raw(query, [name, type, ownerId]);
 
   return rows[0];
 };
