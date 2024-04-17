@@ -53,7 +53,11 @@ Take a look at the `db.sql` file. It contains the SQL commands to create and pop
 
 ![](./img/tableplus.png)
 
-5. Copy-Paste the commands from `db.sql` into the TablePlus SQL query editor (or in `psql` connected to the `playground` database)
+5. Copy-Paste the commands from `db.sql` into the TablePlus SQL query editor (or in `psql` connected to the `playground` database) and <kbd>Run All</kbd>
+
+![](./img/tableplus-run-all.png)
+
+1. Mac users can run <kbd>CMD+R</kbd> and you will see the tables!
 
 ## What is Knex?
 
@@ -112,8 +116,8 @@ Each deployment environment needs a `client` that specifies the kind of database
   development: {
     client: 'pg',
     connection: {
-      user: 'username',
-      password: 'password',
+      user: 'postgres', // unless you want to use a different user
+      password: 'postgres', // unless you changed your password
       database: 'playground', 
       // the database name ^
     }

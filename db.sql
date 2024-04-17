@@ -100,12 +100,4 @@ INSERT INTO author_book(author_id, book_id) VALUES(3, 2);
 INSERT INTO author_book(author_id, book_id) VALUES(1, 5);
 INSERT INTO author_book(author_id, book_id) VALUES(3, 4);
 INSERT INTO author_book(author_id, book_id) VALUES(2, 5);
-INSERT INTO author_book(author_id, book_id) VALUES(3, 3);							
-										
-										
-										
-										
-										
-										
-										
-										
+INSERT INTO author_book(author_id, book_id) VALUES(3, 3);
